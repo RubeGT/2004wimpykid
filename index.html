@@ -22,6 +22,10 @@
             max-width: 500px;
             width: 100%;
             margin-top: 20px;
+            min-height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         #book-page {
             width: 100%;
@@ -42,6 +46,7 @@
             border: none;
             cursor: pointer;
             font-family: inherit;
+            border-radius: 5px;
         }
         button:disabled { background: #666; cursor: not-allowed; }
         .progress-bar {
@@ -50,12 +55,21 @@
             background: #ddd;
             border: 2px solid #000;
             margin-top: 20px;
-            position: relative;
+            border-radius: 5px;
+            overflow: hidden;
         }
         #progress-fill {
             height: 100%;
             background: #fcd34d;
             width: 0%;
+            transition: width 0.3s;
+        }
+        .format-warning {
+            margin-top: 15px;
+            color: #d9534f;
+            font-size: 12px;
+            max-width: 400px;
+            text-align: center;
         }
     </style>
 </head>
@@ -63,11 +77,11 @@
 
     <div class="header">
         <h1>Diary of a Wimpy Kid</h1>
-        <p id="page-display">Page 0 / 1278</p>
+        <p id="page-display">Loading...</p>
     </div>
 
     <div class="viewer">
-        <img id="book-page" src="" alt="Loading...">
+        <img id="book-page" src="" alt="Page image will appear here">
     </div>
 
     <div class="controls">
@@ -78,6 +92,8 @@
     <div class="progress-bar">
         <div id="progress-fill"></div>
     </div>
+
+    <p class="format-warning">Note: If images don't load, convert .jp2 files to .jpg as browsers don't support .jp2 natively.</p>
 
     <script>
         let currentPage = 0;
@@ -91,15 +107,17 @@
         const nextBtn = document.getElementById('next-btn');
 
         function updatePage() {
-            // Logic for split folders
+            // Path matches your GitHub: /public/pages/ or /public/pages2/
             const folder = currentPage <= splitPoint ? 'pages' : 'pages2';
             const fileName = `Diary of a Wimpy Kid book 1 online version_${String(currentPage).padStart(4, '0')}.jp2`;
             
-            // Apply fade out
             imgElement.style.opacity = 0;
 
+            // Vercel serves the 'public' folder content
+            const fullPath = `/public/${folder}/${fileName}`;
+
             setTimeout(() => {
-                imgElement.src = `/${folder}/${fileName}`;
+                imgElement.src = fullPath;
                 pageDisplay.innerText = `Page ${currentPage} / ${totalPages}`;
                 progressFill.style.width = `${(currentPage / totalPages) * 100}%`;
                 
@@ -113,7 +131,6 @@
         nextBtn.onclick = () => { if(currentPage < totalPages) { currentPage++; updatePage(); } };
         prevBtn.onclick = () => { if(currentPage > 0) { currentPage--; updatePage(); } };
 
-        // Keyboard support
         window.onkeydown = (e) => {
             if (e.key === "ArrowRight") nextBtn.onclick();
             if (e.key === "ArrowLeft") prevBtn.onclick();
