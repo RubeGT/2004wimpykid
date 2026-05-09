@@ -4,34 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diary of a Wimpy Kid - 2004 Reader</title>
-    <!-- Loading the OpenJPEG decoder library -->
-    <script src="https://cdn.jsdelivr.net/npm/openjpegjs@1.1.1/dist/openjpegjs.js"></script>
     <style>
         body {
             background-color: #fffcf2;
-            font-family: "Comic Sans MS", cursive;
+            font-family: "Comic Sans MS", "Chalkboard SE", cursive;
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 0;
             padding: 20px;
         }
-        .header { text-align: center; }
+        .header { text-align: center; margin-bottom: 10px; }
         .viewer {
             background: white;
             border: 3px solid #000;
             box-shadow: 10px 10px 0px #000;
-            max-width: 600px;
+            max-width: 550px;
             width: 100%;
-            margin-top: 20px;
+            min-height: 600px;
             display: flex;
+            align-items: center;
             justify-content: center;
-            min-height: 400px;
+            overflow: hidden;
         }
-        canvas {
-            max-width: 100%;
-            height: auto;
+        #book-page {
+            width: 100%;
             display: block;
+            transition: opacity 0.2s ease-in-out;
         }
         .controls {
             margin-top: 30px;
@@ -46,13 +45,24 @@
             color: #fff;
             border: none;
             cursor: pointer;
+            font-family: inherit;
             border-radius: 5px;
         }
         button:disabled { background: #666; cursor: not-allowed; }
-        #status {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #555;
+        .progress-bar {
+            width: 300px;
+            height: 10px;
+            background: #ddd;
+            border: 2px solid #000;
+            margin-top: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #progress-fill {
+            height: 100%;
+            background: #fcd34d;
+            width: 0%;
+            transition: width 0.3s;
         }
     </style>
 </head>
@@ -64,85 +74,65 @@
     </div>
 
     <div class="viewer">
-        <canvas id="book-canvas"></canvas>
+        <img id="book-page" src="" alt="Loading page...">
     </div>
 
-    <p id="status">Initializing decoder...</p>
-
     <div class="controls">
-        <button id="prev-btn" disabled>Back</button>
-        <button id="next-btn" disabled>Next</button>
+        <button id="prev-btn">Back</button>
+        <button id="next-btn">Next</button>
+    </div>
+
+    <div class="progress-bar">
+        <div id="progress-fill"></div>
     </div>
 
     <script>
         let currentPage = 0;
         const totalPages = 1278;
-        const splitPoint = 1000;
-        
-        const canvas = document.getElementById('book-canvas');
-        const ctx = canvas.getContext('2d');
-        const status = document.getElementById('status');
+        const splitPoint = 1000; // Folders split after 1000
+
+        const imgElement = document.getElementById('book-page');
         const pageDisplay = document.getElementById('page-display');
+        const progressFill = document.getElementById('progress-fill');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
 
-        // Initialize OpenJPEG
-        let decoder;
-        openjpegjs().then(api => {
-            decoder = api;
-            status.innerText = "Decoder Ready. Loading page...";
-            updatePage();
-            
-            // Enable buttons once decoder is ready
-            document.getElementById('next-btn').disabled = false;
-            document.getElementById('prev-btn').disabled = false;
-        });
-
-        async function updatePage() {
-            if (!decoder) return;
-
-            status.innerText = "Decoding page... (this may take a second)";
+        function updatePage() {
+            // Path logic based on your folder structure
             const folder = currentPage <= splitPoint ? 'public/pages' : 'public/pages2';
-            const fileName = `Diary of a Wimpy Kid book 1 online version_${String(currentPage).padStart(4, '0')}.jp2`;
-            const fullPath = `${folder}/${fileName}`;
+            const fileName = `Diary of a Wimpy Kid book 1 online version_${String(currentPage).padStart(4, '0')}.jpg`;
+            
+            // Start fade out
+            imgElement.style.opacity = 0;
 
-            try {
-                // 1. Fetch file
-                const resp = await fetch(fullPath);
-                if (!resp.ok) throw new Error("File not found");
-                const buffer = await resp.arrayBuffer();
-                const uint8Array = new Uint8Array(buffer);
-
-                // 2. Decode JP2
-                const decoded = decoder.decode(uint8Array);
+            // Wait for fade then change source
+            setTimeout(() => {
+                imgElement.src = `${folder}/${fileName}`;
                 
-                // 3. Prepare Canvas
-                canvas.width = decoded.width;
-                canvas.height = decoded.height;
-                
-                // 4. Draw decoded data
-                const imgData = ctx.createImageData(decoded.width, decoded.height);
-                imgData.data.set(decoded.data);
-                ctx.putImageData(imgData, 0, 0);
+                // Once the image actually loads, fade it back in
+                imgElement.onload = () => {
+                    imgElement.style.opacity = 1;
+                };
 
-                // Update UI
+                // Update UI elements
                 pageDisplay.innerText = `Page ${currentPage} / ${totalPages}`;
-                status.innerText = "Ready";
-                
-                document.getElementById('prev-btn').disabled = currentPage === 0;
-                document.getElementById('next-btn').disabled = currentPage === totalPages;
-
-            } catch (err) {
-                console.error(err);
-                status.innerText = "Error loading page. Check console.";
-            }
+                progressFill.style.width = `${(currentPage / totalPages) * 100}%`;
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === totalPages;
+            }, 150);
         }
 
-        document.getElementById('next-btn').onclick = () => { if(currentPage < totalPages) { currentPage++; updatePage(); } };
-        document.getElementById('prev-btn').onclick = () => { if(currentPage > 0) { currentPage--; updatePage(); } };
+        nextBtn.onclick = () => { if(currentPage < totalPages) { currentPage++; updatePage(); } };
+        prevBtn.onclick = () => { if(currentPage > 0) { currentPage--; updatePage(); } };
 
+        // Keyboard Navigation
         window.onkeydown = (e) => {
-            if (e.key === "ArrowRight") document.getElementById('next-btn').click();
-            if (e.key === "ArrowLeft") document.getElementById('prev-btn').click();
+            if (e.key === "ArrowRight") nextBtn.click();
+            if (e.key === "ArrowLeft") prevBtn.click();
         };
+
+        // Initial Load
+        updatePage();
     </script>
 </body>
 </html>
