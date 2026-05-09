@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diary of a Wimpy Kid - 2004 Edition</title>
+    <style>
+        body {
+            background-color: #fffcf2;
+            font-family: "Comic Sans MS", "Chalkboard SE", cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .header { text-align: center; }
+        .viewer {
+            background: white;
+            border: 3px solid #000;
+            box-shadow: 10px 10px 0px #000;
+            max-width: 500px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        #book-page {
+            width: 100%;
+            display: block;
+            transition: opacity 0.2s;
+        }
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        button {
+            padding: 10px 25px;
+            font-size: 18px;
+            background: #000;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .progress-bar {
+            width: 300px;
+            height: 10px;
+            background: #ddd;
+            border: 2px solid #000;
+            margin-top: 20px;
+            position: relative;
+        }
+        #progress-fill {
+            height: 100%;
+            background: #fcd34d;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Diary of a Wimpy Kid</h1>
+        <p id="page-display">Page 0 / 1278</p>
+    </div>
+
+    <div class="viewer">
+        <img id="book-page" src="" alt="Loading...">
+    </div>
+
+    <div class="controls">
+        <button id="prev-btn">Back</button>
+        <button id="next-btn">Next</button>
+    </div>
+
+    <div class="progress-bar">
+        <div id="progress-fill"></div>
+    </div>
+
+    <script>
+        let currentPage = 0;
+        const totalPages = 1278;
+        const splitPoint = 1000;
+
+        const imgElement = document.getElementById('book-page');
+        const pageDisplay = document.getElementById('page-display');
+        const progressFill = document.getElementById('progress-fill');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+
+        function updatePage() {
+            // Logic for split folders
+            const folder = currentPage <= splitPoint ? 'pages' : 'pages2';
+            const fileName = `Diary of a Wimpy Kid book 1 online version_${String(currentPage).padStart(4, '0')}.jp2`;
+            
+            // Apply fade out
+            imgElement.style.opacity = 0;
+
+            setTimeout(() => {
+                imgElement.src = `/${folder}/${fileName}`;
+                pageDisplay.innerText = `Page ${currentPage} / ${totalPages}`;
+                progressFill.style.width = `${(currentPage / totalPages) * 100}%`;
+                
+                prevBtn.disabled = currentPage === 0;
+                nextBtn.disabled = currentPage === totalPages;
+                
+                imgElement.style.opacity = 1;
+            }, 200);
+        }
+
+        nextBtn.onclick = () => { if(currentPage < totalPages) { currentPage++; updatePage(); } };
+        prevBtn.onclick = () => { if(currentPage > 0) { currentPage--; updatePage(); } };
+
+        // Keyboard support
+        window.onkeydown = (e) => {
+            if (e.key === "ArrowRight") nextBtn.onclick();
+            if (e.key === "ArrowLeft") prevBtn.onclick();
+        };
+
+        // Initial Load
+        updatePage();
+    </script>
+</body>
+</html>
